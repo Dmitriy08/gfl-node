@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
 const path = require('path');
 
+
 // const UPLOAD_DIR = path.resolve('./uploads');
 const UPLOAD_DIR = path.relative(__dirname, path.resolve(__dirname, 'uploads/'));
 global.upload_dir = UPLOAD_DIR;
