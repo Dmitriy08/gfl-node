@@ -11,6 +11,7 @@ const UPLOAD_DIR = path.relative(__dirname, path.resolve(__dirname, 'uploads/'))
 global.upload_dir = UPLOAD_DIR;
 const app = express();
 
+
 const {
 	userRouter
 } = require('./routes');
