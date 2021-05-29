@@ -1,8 +1,17 @@
-const getRequest = async (url) => {
-	let res = await fetch(url)
-	if (!res.ok) throw new Error('Error - ' + res.status);
-	return await res.json();
-}
+document.addEventListener('DOMContentLoaded', () => {
+	const table = document.querySelector('.table')
+	const username = getCookie('username');
+	let tableBody = document.querySelector('.table tbody');
+	let memoryWrap = document.querySelector('.space');
+	let infoUl = document.querySelector('.information-content ul');
+	let infoImg = document.querySelector('.information-media');
+	let infoDownload = document.querySelector('.information-download');
+	let stateInner = [];
+	let formUpload = document.getElementById('upload-form')
+	let addFolder = document.getElementById('add-folder')
+	let dirUrl = `uploads/${username}`;
+	let dirName = '';
+	let searchInput =  document.querySelector('.search')
 
 const postRequest = async (url, key, data) => {
 	const formData = new FormData()
@@ -91,7 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
 			template = [templateDirUp, ...template]
 		}
 		tableBody.innerHTML = (template.join(''))
-		showSearch(searchInput);
+		console.log('renderTableBody')
+		showSearch();
 	}
 
 	const renderInfo = (options, imgSrc = '', isImg = false) => {
@@ -205,19 +215,24 @@ document.addEventListener('DOMContentLoaded', () => {
 			e.preventDefault();
 			let input = formUpload.querySelector('[type="file"]')
 			let file = input.files[0]
-			if (file) {
-				postRequest(`http://localhost:3010/${username}-file/?idDir=${dirUrl}`, 'myFile', file)
-					.then(response => response.json())
-					.then(({userFiles, memory, parentDir, message}) => {
-						input.value = ''
+			const formData = new FormData()
+			formData.append('myFile', file)
+			fetch(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`, {
+				method: 'POST',
+				body: formData
+			})
+				.then(response => response.json())
+				.then(data => {
+					input.value = ''
+					getRequest(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`).
+					then(({userFiles, memory, parentDir}) => {
 						renderTableBody(userFiles, parentDir);
-						renderFileSystemMemory(memoryWrap, memory);
-						messageAlert(messageWrap, message)
+						renderFileSystemMemory(memory);
 					})
-					.catch(error => {
-						messageAlert(messageWrap, error)
-					})
-			}
+				})
+				.catch(error => {
+					console.error(error)
+				})
 		})
 	}
 
