@@ -5,7 +5,6 @@ const cookieParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
 const path = require('path');
 
-// const UPLOAD_DIR = path.resolve('./uploads');
 const UPLOAD_DIR = path.relative(__dirname, path.resolve(__dirname, 'uploads/'));
 global.upload_dir = UPLOAD_DIR;
 const app = express();
@@ -31,7 +30,7 @@ app.use('/img', express.static(__dirname + '/public/img'));
 app.use('/uploads', express.static(upload_dir));
 
 app.use(UserController.isValidUser);
-app.use('/user', userRouter);
+app.use('/', userRouter);
 
 app.use((req, res) => {
 	res.render('pages/404.hbs')

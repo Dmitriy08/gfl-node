@@ -1,44 +1,88 @@
+const getRequest = async (url) => {
+	let res = await fetch(url)
+	if (!res.ok) throw new Error('Error - ' + res.status);
+	return await res.json();
+}
+
+const postRequest = async (url, key, data) => {
+	const formData = new FormData()
+	formData.append(key, data)
+	return await fetch(url, {
+		method: 'POST',
+		body: formData
+	});
+}
+
+const getCookie = (name) => {
+	let matches = document.cookie.match(new RegExp(
+		"(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+	))
+	return matches ? decodeURIComponent(matches[1]) : undefined
+}
+
+const displayRows = (input, rows) => {
+	let searchValue = input.value.toLowerCase().trimLeft();
+	rows.forEach(row => {
+		[...row.querySelectorAll('[data-name]')]
+			.some(value => value.textContent.toLowerCase().trimLeft().indexOf(searchValue) > -1)
+			? row.style.display = 'table-row'
+			: row.style.display = 'none'
+	})
+}
+
+const showSearch = (searchInput) => {
+	let rows = document.querySelectorAll('tbody tr');
+	if (searchInput) {
+		if (searchInput.value.toLowerCase().length > 0) displayRows(searchInput, rows);
+		searchInput.addEventListener('keyup', () => {
+			displayRows(searchInput, rows)
+		})
+	}
+}
+
+const makeRender = (selector) => {
+	let template = document.querySelector(selector).innerHTML;
+	return new Function('data', 'return `' + template + '`');
+}
+
+const renderFileSystemMemory = (memoryWrap, memory) => {
+	memoryWrap.innerHTML = '';
+	let listRender = makeRender('.freeSpaceTemplate');
+	memoryWrap.innerHTML = listRender(memory);
+}
+
+const messageAlert = (wrap, message) => {
+	wrap.textContent = message;
+	wrap.classList.add('show');
+	setTimeout(()=> {
+		wrap.classList.remove('show');
+	}, 3000)
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+	'use strict'
+
 	const table = document.querySelector('.table')
 	const username = getCookie('username');
-	let tableBody = document.querySelector('.table tbody');
-	let memoryWrap = document.querySelector('.space');
-	let infoUl = document.querySelector('.information-content ul');
-	let infoImg = document.querySelector('.information-media');
-	let infoDownload = document.querySelector('.information-download');
-	let stateInner = [];
-	let formUpload = document.getElementById('upload-form')
-	let addFolder = document.getElementById('add-folder')
+	const memoryWrap = document.querySelector('.space');
+	const formUpload = document.getElementById('upload-form')
+	const addFolder = document.getElementById('add-folder')
+	const searchInput = document.querySelector('.search')
+	const messageWrap = document.querySelector('.message-alert');
 	let dirUrl = `uploads/${username}`;
 	let dirName = '';
-	let searchInput =  document.querySelector('.search')
-
-	function getCookie(name) {
-		let matches = document.cookie.match(new RegExp(
-			"(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
-		))
-		return matches ? decodeURIComponent(matches[1]) : undefined
-	}
-
-	const makeRender = (selector) => {
-		let template = document.querySelector(selector).innerHTML;
-		return new Function('data', 'return `' + template + '`');
-	}
-
-	const renderFileSystemMemory = (memory) => {
-		memoryWrap.innerHTML = '';
-		let listRender = makeRender('.freeSpaceTemplate');
-		memoryWrap.innerHTML = listRender(memory);
-	}
+	let separator = navigator.appVersion.indexOf("Win") !== -1 ? '\\' : '/';
 
 	const renderTableBody = (userFiles, dir = '', up = false) => {
+		const tableBody = table.querySelector('tbody');
 		tableBody.innerHTML = '';
 		let listRender = makeRender('.tableBody');
 		let template = userFiles.map((data) => listRender(data))
-		if (up) {
-			stateInner.slice(0, -1)
-		}
-		if (dir.length && dir !== `uploads/${username}` && dir !== `uploads/${username}/`) {
+		if (dir.length
+			&& dir !== `uploads${separator}${username}`
+			&& dir !== `uploads${separator}${username}/`
+			&& dir !== `uploads/${username}`
+		) {
 			let templateDirUp = `
 				<tr data-up data-dir="${dir}">
 					<td colspan="4">...</td>
@@ -47,54 +91,29 @@ document.addEventListener('DOMContentLoaded', () => {
 			template = [templateDirUp, ...template]
 		}
 		tableBody.innerHTML = (template.join(''))
-		console.log('renderTableBody')
-		showSearch();
+		showSearch(searchInput);
 	}
 
 	const renderInfo = (options, imgSrc = '', isImg = false) => {
+		const infoUl = document.querySelector('.information-content ul');
+		const infoImg = document.querySelector('.information-media img');
+		const infoDownload = document.querySelector('.information-download');
 		let templateRender = makeRender('.infoTemplate')
 		let template = options.map((data) => templateRender(data))
 		infoImg.innerHTML = '';
 		infoDownload.innerHTML = '';
 		if ('true' === isImg) {
-			let imgTag = document.createElement('img');
-			imgTag.src = imgSrc
-			imgTag.alt = 'image'
-			infoImg.append(imgTag)
+			infoImg.src = imgSrc
 		}
 		if (imgSrc) {
 			let downloadLink = document.createElement('a');
 			downloadLink.href = imgSrc
 			downloadLink.download = options[0].value
+			downloadLink.classList.add('btn', 'btn-info')
 			downloadLink.textContent = 'Download'
 			infoDownload.append(downloadLink)
 		}
 		infoUl.innerHTML = template.join('')
-	}
-
-	const getRequest = async (url) => {
-		let res = await fetch(url)
-		if (!res.ok) throw new Error('Error - ' + res.status);
-		return await res.json();
-	}
-
-	function postRequest(url, data) {
-		// const res = await fetch(`${url}`, {
-		// 	method: 'post',
-		// 	headers: {
-		// 	    'Content-type': 'application/json; charset=utf-8'
-		// 	},
-		// 	body: JSON.stringify(data)
-		// 	// body: data
-		// });
-		// console.log(data)
-		// if (!res.ok) {
-		// 	throw new Error(`Could not fetch ${url}, status: ${res.status}`)
-		// }
-		// return await res.json();
-		// return await res.text();
-
-
 	}
 
 	if (table) {
@@ -103,26 +122,25 @@ document.addEventListener('DOMContentLoaded', () => {
 			let elem;
 			if (e.target.closest('[data-type="dir"]')) {
 				elem = e.target.closest('[data-type="dir"]');
-				dirUrl = elem.getAttribute('data-dir');
 				dirName = elem.querySelector('[data-name]').textContent;
-				dirUrl = elem.getAttribute('data-dir') + '/' + elem.querySelector('[data-name]').textContent
-				getRequest(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`).
-				then(({userFiles, memory, parentDir
-				}) => {
+				dirUrl = elem.getAttribute('data-dir') + separator + elem.querySelector('[data-name]').textContent
+				getRequest(`http://localhost:3010/${username}-file/?idDir=${dirUrl}`)
+					.then(({userFiles, memory, parentDir, message}) => {
 					renderTableBody(userFiles, parentDir);
-					renderFileSystemMemory(memory);
+					renderFileSystemMemory(memoryWrap, memory);
+						messageAlert(messageWrap, message)
 				})
 			}
 			if (e.target.closest('[data-up]')) {
 				elem = e.target.closest('[data-up]');
 				let parentUrl = elem.getAttribute('data-dir');
-				dirUrl = parentUrl.slice(0, dirUrl.lastIndexOf('/'))
-				getRequest(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`)
-					.then(({userFiles, memory, parentDir
-				}) => {
-					renderTableBody(userFiles, parentDir);
-					renderFileSystemMemory(memory);
-				})
+				dirUrl = parentUrl.slice(0, dirUrl.lastIndexOf(separator))
+				getRequest(`http://localhost:3010/${username}-file/?idDir=${dirUrl}`)
+					.then(({userFiles, memory, parentDir}) => {
+						renderTableBody(userFiles, parentDir);
+						renderFileSystemMemory(memoryWrap, memory);
+						messageAlert(messageWrap, 'Return Back')
+					})
 			}
 		})
 
@@ -143,12 +161,18 @@ document.addEventListener('DOMContentLoaded', () => {
 					})
 				}
 				let path;
-				if (elem.hasAttribute('data-src')) {
-					path = elem.getAttribute('data-src');
-				}
 				let isImg;
-				if (elem.hasAttribute('data-is-img')) {
+				if (elem.getAttribute('data-type') === 'dir') {
+					path = '/img/folder.svg'
+					isImg = 'true'
+				}
+				if (elem.getAttribute('data-type') === 'file') {
+					path = '/img/html.svg'
+					isImg = 'true'
+				}
+				if (elem.getAttribute('data-is-img') === 'true') {
 					isImg = elem.getAttribute('data-is-img');
+					path = elem.getAttribute('data-src');
 				}
 				renderInfo(options, path, isImg)
 			}
@@ -160,39 +184,19 @@ document.addEventListener('DOMContentLoaded', () => {
 			e.preventDefault();
 			let input = addFolder.querySelector('input')
 			let nameDir = input.value;
-			const formData = new FormData()
-			formData.append('nameDir', nameDir)
-			fetch(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`, {
-				method: 'POST',
-				body: formData
-			}).then(data => {
-				input.value = ''
-				getRequest(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`).
-				then(({userFiles, memory, parentDir}) => {
-					renderTableBody(userFiles, parentDir);
-					renderFileSystemMemory(memory);
-				})
-			})
-		})
-	}
-
-	function displayRows (input, rows) {
-		let searchValue = input.value.toLowerCase().trimLeft();
-		console.log(searchValue)
-		rows.forEach( row => {
-			[...row.querySelectorAll('[data-name]')]
-				.some( value => value.textContent.toLowerCase().trimLeft().indexOf(searchValue) > -1 )
-				? row.style.display = 'table-row'
-				: row.style.display = 'none'
-		} )
-	}
-
-	const showSearch = () => {
-		let rows = document.querySelectorAll('tbody tr');
-		if (searchInput.value.toLowerCase().length > 0) displayRows(searchInput, rows);
-		searchInput.addEventListener('keyup', () => {
-			console.log(1111)
-			displayRows(searchInput, rows)
+			if (nameDir.trim().length) {
+				postRequest(`http://localhost:3010/${username}-file/?idDir=${dirUrl}`, 'nameDir', nameDir)
+					.then( data => data.json())
+					.then( ({userFiles, memory, parentDir, message}) => {
+							input.value = ''
+							renderTableBody(userFiles, parentDir);
+							renderFileSystemMemory(memoryWrap, memory);
+							messageAlert(messageWrap, message)
+					})
+					.catch(error => {
+						messageAlert(messageWrap, error)
+					})
+			}
 		})
 	}
 
@@ -201,26 +205,21 @@ document.addEventListener('DOMContentLoaded', () => {
 			e.preventDefault();
 			let input = formUpload.querySelector('[type="file"]')
 			let file = input.files[0]
-			const formData = new FormData()
-			formData.append('myFile', file)
-			fetch(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`, {
-				method: 'POST',
-				body: formData
-			})
-				.then(response => response.json())
-				.then(data => {
-					input.value = ''
-					getRequest(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`).
-					then(({userFiles, memory, parentDir}) => {
+			if (file) {
+				postRequest(`http://localhost:3010/${username}-file/?idDir=${dirUrl}`, 'myFile', file)
+					.then(response => response.json())
+					.then(({userFiles, memory, parentDir, message}) => {
+						input.value = ''
 						renderTableBody(userFiles, parentDir);
-						renderFileSystemMemory(memory);
+						renderFileSystemMemory(memoryWrap, memory);
+						messageAlert(messageWrap, message)
 					})
-				})
-				.catch(error => {
-					console.error(error)
-				})
+					.catch(error => {
+						messageAlert(messageWrap, error)
+					})
+			}
 		})
 	}
 
-	showSearch();
+	showSearch(searchInput);
 })
