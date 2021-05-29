@@ -1,17 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
-	const table = document.querySelector('.table')
-	const username = getCookie('username');
-	let tableBody = document.querySelector('.table tbody');
-	let memoryWrap = document.querySelector('.space');
-	let infoUl = document.querySelector('.information-content ul');
-	let infoImg = document.querySelector('.information-media');
-	let infoDownload = document.querySelector('.information-download');
-	let stateInner = [];
-	let formUpload = document.getElementById('upload-form')
-	let addFolder = document.getElementById('add-folder')
-	let dirUrl = `uploads/${username}`;
-	let dirName = '';
-	let searchInput =  document.querySelector('.search')
+const getRequest = async (url) => {
+	let res = await fetch(url)
+	if (!res.ok) throw new Error('Error - ' + res.status);
+	return await res.json();
+}
 
 const postRequest = async (url, key, data) => {
 	const formData = new FormData()
@@ -65,7 +56,7 @@ const messageAlert = (wrap, message) => {
 	wrap.classList.add('show');
 	setTimeout(()=> {
 		wrap.classList.remove('show');
-	}, 3000)
+	}, 3500)
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -87,10 +78,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		tableBody.innerHTML = '';
 		let listRender = makeRender('.tableBody');
 		let template = userFiles.map((data) => listRender(data))
+		console.log(dir)
 		if (dir.length
 			&& dir !== `uploads${separator}${username}`
+			// Test on windows
 			&& dir !== `uploads${separator}${username}/`
-			&& dir !== `uploads/${username}`
 		) {
 			let templateDirUp = `
 				<tr data-up data-dir="${dir}">
@@ -100,8 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			template = [templateDirUp, ...template]
 		}
 		tableBody.innerHTML = (template.join(''))
-		console.log('renderTableBody')
-		showSearch();
+		showSearch(searchInput);
 	}
 
 	const renderInfo = (options, imgSrc = '', isImg = false) => {
@@ -112,10 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		let template = options.map((data) => templateRender(data))
 		infoImg.innerHTML = '';
 		infoDownload.innerHTML = '';
+		infoImg.src = imgSrc
+		// if ('true' === isImg) {
+		// 	infoImg.src = imgSrc
+		// }
 		if ('true' === isImg) {
-			infoImg.src = imgSrc
-		}
-		if (imgSrc) {
 			let downloadLink = document.createElement('a');
 			downloadLink.href = imgSrc
 			downloadLink.download = options[0].value
@@ -138,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					.then(({userFiles, memory, parentDir, message}) => {
 					renderTableBody(userFiles, parentDir);
 					renderFileSystemMemory(memoryWrap, memory);
-						messageAlert(messageWrap, message)
+					messageAlert(messageWrap, message)
 				})
 			}
 			if (e.target.closest('[data-up]')) {
@@ -149,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					.then(({userFiles, memory, parentDir}) => {
 						renderTableBody(userFiles, parentDir);
 						renderFileSystemMemory(memoryWrap, memory);
-						messageAlert(messageWrap, 'Return Back')
+						messageAlert(messageWrap, 'Return back')
 					})
 			}
 		})
@@ -174,15 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
 				let isImg;
 				if (elem.getAttribute('data-type') === 'dir') {
 					path = '/img/folder.svg'
-					isImg = 'true'
 				}
 				if (elem.getAttribute('data-type') === 'file') {
 					path = '/img/html.svg'
 					isImg = 'true'
 				}
 				if (elem.getAttribute('data-is-img') === 'true') {
-					isImg = elem.getAttribute('data-is-img');
 					path = elem.getAttribute('data-src');
+					isImg = 'true';
 				}
 				renderInfo(options, path, isImg)
 			}
@@ -215,24 +206,19 @@ document.addEventListener('DOMContentLoaded', () => {
 			e.preventDefault();
 			let input = formUpload.querySelector('[type="file"]')
 			let file = input.files[0]
-			const formData = new FormData()
-			formData.append('myFile', file)
-			fetch(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`, {
-				method: 'POST',
-				body: formData
-			})
-				.then(response => response.json())
-				.then(data => {
-					input.value = ''
-					getRequest(`http://localhost:3010/user/${username}-file/?idDir=${dirUrl}`).
-					then(({userFiles, memory, parentDir}) => {
+			if (file) {
+				postRequest(`http://localhost:3010/${username}-file/?idDir=${dirUrl}`, 'myFile', file)
+					.then(response => response.json())
+					.then(({userFiles, memory, parentDir, message}) => {
+						input.value = ''
 						renderTableBody(userFiles, parentDir);
-						renderFileSystemMemory(memory);
+						renderFileSystemMemory(memoryWrap, memory);
+						messageAlert(messageWrap, message)
 					})
-				})
-				.catch(error => {
-					console.error(error)
-				})
+					.catch(error => {
+						messageAlert(messageWrap, error)
+					})
+			}
 		})
 	}
 
