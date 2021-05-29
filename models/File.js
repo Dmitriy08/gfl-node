@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 class FileApp {
-	USER_MAX_SIZE = 12428800;
+	USER_MAX_SIZE = 20000000;
 	USED_MEMORY = 0;
 
 	createUserDir(username) {
@@ -12,15 +12,8 @@ class FileApp {
 	}
 
 	__getFolderSize(dirTree) {
-		// let size = 0;
-		// dirTree.forEach(item => {
-		// 	size += item.sizeBytes
-		// })
-		// return size;
-
 		const dirItems = Object.keys(dirTree);
 		let sizeBytes = 0;
-
 		dirItems.forEach(item => {
 			const itemObj = dirTree[item];
 			sizeBytes += itemObj.isFile ? itemObj.sizeBytes : this.__getFolderSize(itemObj.items);
@@ -29,9 +22,7 @@ class FileApp {
 			}
 
 		});
-
 		return sizeBytes;
-
 	};
 
 	__formatSizeUnits(bytes) {
@@ -75,7 +66,6 @@ class FileApp {
 							basename: base,
 							dir,
 							sizeBytes: stats.size,
-							// size: stats.size,
 							size: this.__formatSizeUnits(stats.size),
 							birthtime: new Date(stats.ctime).toLocaleDateString(),
 							isFile: stats.isFile(),

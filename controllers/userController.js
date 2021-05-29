@@ -31,7 +31,7 @@ class UserController {
 					});
 					res.cookie('username', username);
 					fileApp.createUserDir(username)
-					res.redirect('/user/' + username);
+					res.redirect('/');
 				});
 			}
 		});
@@ -54,7 +54,7 @@ class UserController {
 				httpOnly: true,
 			});
 			res.cookie('username', username);
-			res.redirect('/user/' + username);
+			res.redirect('/');
 		});
 	}
 
@@ -69,8 +69,8 @@ class UserController {
 			const {url} = req;
 
 			if (isValid) next();
-			else if (url !== '/user/login' && url !== '/user/create') {
-				res.redirect('/user/login');
+			else if (url !== '/login' && url !== '/create') {
+				res.redirect('/login');
 			} else {
 				next();
 			}
@@ -78,7 +78,7 @@ class UserController {
 	}
 
 	getUserItems(req, res) {
-		const {username} = req.params;
+		const {username} = req.cookies;
 		let userFiles = fileApp.getFolderItems(upload_dir + '/' + username)
 		let success = '';
 
@@ -88,12 +88,13 @@ class UserController {
 			userFilesCount: userFiles.length,
 			userFiles: userFiles,
 			memory: fileApp.getMemory(userFiles).freeMemory,
-			allMemory: fileApp.getMemory(userFiles).allMemory
+			allMemory: fileApp.getMemory(userFiles).allMemory,
+			usedMemory: fileApp.getMemory(userFiles).usedMemory
 		})
 	}
 
 	getUserDirItemsJson(req, res) {
-		const {username} = req.params;
+		const {username} = req.cookies;
 		const {idDir = `uploads/${username}`} = req.query;
 		let allUserFiles = fileApp.getFolderItems(upload_dir + '/' + username)
 		let userFiles
@@ -114,8 +115,7 @@ class UserController {
 					}
 				}
 			} catch (err) {
-				console.log(err)
-				// res.status(500).json({success: false, message: 'Server error'});
+				console.log('Server error ',err)
 			}
 		}
 	}
