@@ -1,9 +1,11 @@
+//GET
 const getRequest = async (url) => {
 	let res = await fetch(url)
 	if (!res.ok) throw new Error('Error - ' + res.status);
 	return await res.json();
 }
 
+//POST
 const postRequest = async (url, key, data) => {
 	const formData = new FormData()
 	formData.append(key, data)
@@ -13,6 +15,7 @@ const postRequest = async (url, key, data) => {
 	});
 }
 
+//GET COOKIES
 const getCookie = (name) => {
 	let matches = document.cookie.match(new RegExp(
 		"(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
@@ -30,7 +33,7 @@ const displayRows = (input, rows) => {
 	})
 }
 
-const showSearch = (searchInput) => {
+const filterSearch = (searchInput) => {
 	let rows = document.querySelectorAll('tbody tr');
 	if (searchInput) {
 		if (searchInput.value.toLowerCase().length > 0) displayRows(searchInput, rows);
@@ -68,10 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	const formUpload = document.getElementById('upload-form')
 	const addFolder = document.getElementById('add-folder')
 	const searchInput = document.querySelector('.search')
-	const messageWrap = document.querySelector('.message-alert');
-	let dirUrl = `uploads/${username}`;
-	let dirName = '';
 	let separator = navigator.appVersion.indexOf("Win") !== -1 ? '\\' : '/';
+	const messageWrap = document.querySelector('.message-alert');
+	let dirUrl = `uploads${separator}${username}`;
+	let dirName = '';
 
 	const renderTableBody = (userFiles, dir = '', up = false) => {
 		const tableBody = table.querySelector('tbody');
@@ -79,11 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		let listRender = makeRender('.tableBody');
 		let template = userFiles.map((data) => listRender(data))
 		console.log(dir)
-		if (dir.length
-			&& dir !== `uploads${separator}${username}`
-			// Test on windows
-			&& dir !== `uploads${separator}${username}/`
-		) {
+		if (dir.length && dir !== `uploads${separator}${username}`) {
 			let templateDirUp = `
 				<tr data-up data-dir="${dir}">
 					<td colspan="4">...</td>
@@ -92,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			template = [templateDirUp, ...template]
 		}
 		tableBody.innerHTML = (template.join(''))
-		showSearch(searchInput);
+		filterSearch(searchInput);
 	}
 
 	const renderInfo = (options, imgSrc = '', isImg = false) => {
@@ -104,9 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		infoImg.innerHTML = '';
 		infoDownload.innerHTML = '';
 		infoImg.src = imgSrc
-		// if ('true' === isImg) {
-		// 	infoImg.src = imgSrc
-		// }
 		if ('true' === isImg) {
 			let downloadLink = document.createElement('a');
 			downloadLink.href = imgSrc
@@ -214,13 +210,17 @@ document.addEventListener('DOMContentLoaded', () => {
 						renderTableBody(userFiles, parentDir);
 						renderFileSystemMemory(memoryWrap, memory);
 						messageAlert(messageWrap, message)
+						let row = table.querySelectorAll('tr')
+						if(row) row[row.length - 1].click()
 					})
 					.catch(error => {
 						messageAlert(messageWrap, error)
 					})
 			}
+			let row = table.querySelectorAll('tr')
+			if(row) row[row.length - 1].click()
 		})
 	}
 
-	showSearch(searchInput);
+	filterSearch(searchInput);
 })

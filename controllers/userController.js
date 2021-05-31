@@ -116,7 +116,6 @@ class UserController {
 					} else {
 						message = "Directory already exists."
 					}
-
 				}
 				if (req.files) {
 					const filesList = Object.values(req.files);
